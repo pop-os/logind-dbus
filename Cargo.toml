@@ -13,5 +13,4 @@ categories = ["os::unix-apis"]
 keywords = ["linux", "systemd", "logind", "dbus"]
 
 [dependencies]
-dbus = "0.6"
-cascade = "0.1.2"
+dbus = "0.8"
