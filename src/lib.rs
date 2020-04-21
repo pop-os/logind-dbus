@@ -11,12 +11,12 @@
 //! }
 //! ```
 
-#[macro_use]
-extern crate cascade;
 extern crate dbus;
 
-use dbus::{arg, BusType, Connection, ConnPath};
+use dbus::arg::OwnedFd;
+use dbus::blocking::{Connection, Proxy};
 use std::ops::Deref;
+use std::time::Duration;
 
 /// An interface to `org.freedesktop.login1.Manager`.
 pub struct LoginManager {
@@ -32,19 +32,19 @@ impl Deref for LoginManager {
 
 impl LoginManager {
     pub fn new() -> Result<LoginManager, dbus::Error> {
-        Ok(Self { conn: Connection::get_private(BusType::System)? })
+        Ok(Self { conn: Connection::new_system()? })
     }
 
     pub fn connect(&self) -> LoginManagerConnection {
         LoginManagerConnection {
-            conn: self.with_path("org.freedesktop.login1", "/org/freedesktop/login1", 1000)
+            conn: self.with_proxy("org.freedesktop.login1", "/org/freedesktop/login1", Duration::from_millis(1000))
         }
     }
 }
 
 /// An established connection path for the login manager, through which the API is made accessible.
 pub struct LoginManagerConnection<'a> {
-    conn: ConnPath<'a, &'a Connection>
+    conn: Proxy<'a, &'a Connection>
 }
 
 impl<'a> LoginManagerConnection<'a> {
@@ -60,28 +60,19 @@ impl<'a> LoginManagerConnection<'a> {
     /// # Notes
     /// 
     /// A root user session cannot use systemd inhibitors.
-    pub fn inhibit(&self, what: &str, who: &str, why: &str, mode: &str) -> Result<dbus::OwnedFd, dbus::Error> {
-        let mut m = self.conn.method_call_with_args(
-            &"org.freedesktop.login1.Manager".into(),
-            &"Inhibit".into(),
-            |msg| {
-                cascade! {
-                    arg::IterAppend::new(msg);
-                    ..append(what);
-                    ..append(who);
-                    ..append(why);
-                    ..append(mode);
-                }
-            })?;
-
-        m.as_result()?;
-        Ok(m.iter_init().read::<dbus::OwnedFd>()?)
+    pub fn inhibit(&self, what: &str, who: &str, why: &str, mode: &str) -> Result<OwnedFd, dbus::Error> {
+        let (m,): (OwnedFd,) = self.conn.method_call(
+            "org.freedesktop.login1.Manager",
+            "Inhibit",
+            ( what, who, why, mode, )
+        )?;
+        Ok(m)
     }
 
     /// Convenience method for inhibiting suspend.
     /// 
     /// Equivalent to `connection.inhibit("idle:shutdown:sleep", who, why, "block")`.
-    pub fn inhibit_suspend(&self, who: &str, why: &str) -> Result<dbus::OwnedFd, dbus::Error> {
+    pub fn inhibit_suspend(&self, who: &str, why: &str) -> Result<OwnedFd, dbus::Error> {
         self.inhibit("idle:shutdown:sleep", who, why, "block")
     }
 }
