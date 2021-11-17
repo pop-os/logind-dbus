@@ -1,6 +1,6 @@
 [package]
 name = "logind-dbus"
-version = "0.1.1"
+version = "1.0.0-beta.1"
 authors = [
     "Jeremy Soller <jackpot51@gmail.com>",
     "Michael Aaron Murphy <michael@system76.com>"
@@ -11,7 +11,8 @@ readme = "README.md"
 license = "MIT"
 categories = ["os::unix-apis"]
 keywords = ["linux", "systemd", "logind", "dbus"]
+edition = "2018"
 
 [dependencies]
-dbus = "0.6"
-cascade = "0.1.2"
+zbus = { git = "https://gitlab.freedesktop.org/dbus/zbus/" }
+zvariant = { git = "https://gitlab.freedesktop.org/dbus/zbus/" }
